@@ -164,7 +164,7 @@ body.open .drawer{transform:none;visibility:visible}
       <input class="full" id="bldg" placeholder="Building, floor, apartment, landmark (optional)" autocomplete="address-line2">
     </div>
     <div class="total"><span>Total</span><span id="total">0</span></div>
-    <button class="cta" id="order">Send order on WhatsApp</button>
+    <button class="cta" id="order">Place order</button>
   </div>
 </aside>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Product details" hidden>
@@ -246,7 +246,7 @@ $("#openCart").onclick=()=>setOpen(true);
 $("#closeCart").onclick=$("#veil").onclick=()=>setOpen(false);
 document.addEventListener("keydown",e=>{if(e.key==="Escape")setOpen(false)});
 
-$("#order").onclick=()=>{
+$("#order").onclick=async()=>{
   const ids=Object.keys(cart);
   if(!ids.length){toast("Your cart is empty");return}
   const v=id=>$("#"+id).value.trim();
@@ -255,6 +255,20 @@ $("#order").onclick=()=>{
   if(phone.replace(/\D/g,"").length<10){toast("Please enter a valid phone number");return}
   let sum=0;
   const lines=ids.map(i=>{const p=PRODUCTS.find(x=>x.id==i);sum+=p.price*cart[i];return `• ${p.name} × ${cart[i]} = ${p.price*cart[i]} ${CURRENCY}`});
+  const email=(typeof ORDER_EMAIL!=="undefined"&&ORDER_EMAIL)?ORDER_EMAIL.trim():"";
+  if(email){
+    const btn=$("#order");btn.disabled=true;btn.textContent="Sending…";
+    try{
+      const r=await fetch("https://formsubmit.co/ajax/"+email,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+        body:JSON.stringify({_subject:"New Amora order from "+name,_template:"table",_captcha:"false",Order:lines.join("\n"),Total:sum+" "+CURRENCY,Name:name,Phone:phone,"Extra phone":phone2||"-",Street:street,Area:area,Governorate:gov,Details:bldg||"-"})});
+      const d=await r.json();
+      if(!r.ok||d.success===false||d.success==="false")throw new Error("send failed");
+      cart={};renderCart();setOpen(false);toast("Order sent! We will contact you soon ✦");
+    }catch(e){toast("Could not send the order. Please try again")}
+    btn.disabled=false;btn.textContent="Place order";
+    return;
+  }
+  if(typeof WHATSAPP==="undefined"||!WHATSAPP){toast("Ordering is not set up yet");return}
   const msg=["Hello Amora ✦","I would like to order:",...lines,"",`Total: ${sum} ${CURRENCY}`,"",`Name: ${name}`,`Phone: ${phone}`,phone2?`Extra phone: ${phone2}`:"",`Street: ${street}`,`Area: ${area}`,`Governorate: ${gov}`,bldg?`Details: ${bldg}`:""].filter((x,i,a)=>x!==""||a[i-1]!=="").join("\n");
   window.open("https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(msg),"_blank");
 };

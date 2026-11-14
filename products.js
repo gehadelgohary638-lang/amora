@@ -1,6 +1,7 @@
 /* Amora store data. Edit it with admin.html, then upload this file again. */
-const WHATSAPP = "";
+const WHATSAPP = "201283665443";
 const CURRENCY = "EGP";
+const ORDER_EMAIL = "mmfgohary2@gmail.com";
 
 const PRODUCTS = [
  {
